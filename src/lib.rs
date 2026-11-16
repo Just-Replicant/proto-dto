@@ -28,6 +28,12 @@
 //!   a CRUD application type. The paths it calls are plain tokens, so this
 //!   crate does not depend on the bridge or on the application crates.
 //!
+//! The companion build-only crate
+//! [`proto-dto-build`](https://docs.rs/proto-dto-build) renders the
+//! `flutter_rust_bridge` mirror structs for these DTOs from a protobuf
+//! descriptor set. It is a separate crate so that depending on `proto-dto`
+//! never compiles its code generator.
+//!
 //! # Features
 //!
 //! * `serde`: [`DtoDataJson`] and the JSON half of [`envelope!`].

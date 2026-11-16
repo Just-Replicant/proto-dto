@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The repository is now a Cargo workspace. The new build-only
+  `proto-dto-build` crate (see `proto-dto-build/CHANGELOG.md`) renders the
+  `flutter_rust_bridge` mirrors that the README previously described as
+  hand-written `rf-proto` build code. `proto-dto` itself is unchanged and
+  gains no dependencies.
+
 ## [0.1.0]
 
 ### Added
