@@ -10,6 +10,10 @@
 use proc_macro::TokenStream;
 
 /// No-op `#[frb(...)]` that keeps the item and notes the arguments.
+///
+/// # Panics
+///
+/// Never in practice: the doc attribute it builds is always valid tokens.
 #[proc_macro_attribute]
 pub fn frb(attribute: TokenStream, item: TokenStream) -> TokenStream {
     let marker = format!(
