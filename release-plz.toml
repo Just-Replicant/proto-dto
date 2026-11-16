@@ -1,0 +1,18 @@
+# https://release-plz.dev/docs/config
+[workspace]
+# Keep CHANGELOG.md up to date in the release PR (git-cliff, Keep a Changelog).
+changelog_update = true
+# Tag as `v0.1.0` (the default for a single-package repo is `v{{ version }}`).
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+git_release_enable = true
+publish = true
+# Fail the release PR job if the crate no longer packages cleanly.
+publish_allow_dirty = false
+semver_check = true
+# Only open a release PR when there are commits that change the package.
+release_always = false
+
+[[package]]
+name = "proto-dto"
+changelog_path = "CHANGELOG.md"
