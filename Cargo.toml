@@ -1,0 +1,50 @@
+[package]
+name = "proto-dto"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-or-later"
+description = "macro_rules! generators for typed protobuf DTOs carried in google.protobuf.Any, with a JSON shape and flutter_rust_bridge CRUD wrappers"
+repository = "https://github.com/Just-Replicant/proto-dto"
+documentation = "https://docs.rs/proto-dto"
+readme = "README.md"
+keywords = ["protobuf", "prost", "dto", "flutter", "macro"]
+categories = ["encoding", "development-tools::ffi", "rust-patterns"]
+exclude = ["/.github", "/test-support", "/release-plz.toml"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+name = "proto_dto"
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
+
+[dependencies]
+prost = "0.14"
+prost-types = "0.14"
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+# `macro_rules!` cannot change identifier case; `envelope!` uses this to turn
+# the `HardDrive` variant into `from_hard_drive` / `try_as_hard_drive`.
+pastey = "0.2"
+
+[dev-dependencies]
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Stand-in for `flutter_rust_bridge::frb`, so the `frb_crud_service!` tests do
+# not pull in the real bridge. It is a dev-dependency only.
+flutter_rust_bridge = { package = "frb-attr-shim", path = "test-support/frb-shim" }
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+unreachable_pub = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
