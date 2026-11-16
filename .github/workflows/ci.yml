@@ -29,8 +29,8 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt
+      # Covers every workspace member, including test-support/frb-shim.
       - run: cargo fmt --all --check
-      - run: cargo fmt --manifest-path test-support/frb-shim/Cargo.toml --check
 
   clippy:
     name: clippy (${{ matrix.features.name }})
@@ -40,7 +40,7 @@ jobs:
       matrix:
         features:
           - { name: default, flags: "" }
-          - { name: serde, flags: "--features serde" }
+          - { name: serde, flags: "--features proto-dto/serde" }
           - { name: all, flags: "--all-features" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,7 +51,7 @@ jobs:
           toolchain: stable
           components: clippy
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-      - run: cargo clippy --locked --all-targets ${{ matrix.features.flags }} -- -D warnings
+      - run: cargo clippy --locked --workspace --all-targets ${{ matrix.features.flags }} -- -D warnings
 
   test:
     name: test (${{ matrix.toolchain }}, ${{ matrix.features.name }})
@@ -63,7 +63,7 @@ jobs:
         toolchain: [stable, "1.85"]
         features:
           - { name: default, flags: "" }
-          - { name: serde, flags: "--features serde" }
+          - { name: serde, flags: "--features proto-dto/serde" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,8 +74,8 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           key: ${{ matrix.toolchain }}
-      - run: cargo test --locked --all-targets ${{ matrix.features.flags }}
-      - run: cargo test --locked --doc ${{ matrix.features.flags }}
+      - run: cargo test --locked --workspace --all-targets ${{ matrix.features.flags }}
+      - run: cargo test --locked --workspace --doc ${{ matrix.features.flags }}
 
   docs:
     name: docs
@@ -89,7 +89,7 @@ jobs:
           toolchain: nightly
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       # Same flags as docs.rs (see [package.metadata.docs.rs]).
-      - run: cargo doc --locked --no-deps --all-features
+      - run: cargo doc --locked --workspace --no-deps --all-features
         env:
           RUSTDOCFLAGS: --cfg docsrs -D warnings
 
@@ -104,4 +104,5 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-      - run: cargo publish --dry-run --locked
+      - run: cargo publish --dry-run --locked -p proto-dto
+      - run: cargo publish --dry-run --locked -p proto-dto-build
