@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/Just-Replicant/proto-dto/compare/v0.1.0...v0.1.1) - 2026-11-17
+
+### Other
+
+- document workspace and proto-dto-build
+- *(workspace)* convert root package to Cargo workspace
+
 ### Changed
 
 - The repository is now a Cargo workspace. The new build-only
