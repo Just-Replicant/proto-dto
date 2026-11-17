@@ -1,0 +1,30 @@
+[package]
+name = "proto-dto-build"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Build-script helper for proto-dto: renders flutter_rust_bridge mirror structs and exhaustive conversion checks from a protobuf descriptor set"
+documentation = "https://docs.rs/proto-dto-build"
+readme = "README.md"
+keywords = ["protobuf", "prost", "build", "flutter", "codegen"]
+categories = ["development-tools::build-utils", "development-tools::ffi"]
+# The tests compile fixtures against the repository-only frb shim.
+exclude = ["/tests"]
+
+[dependencies]
+# Same identifier rules prost-build uses (`FolderDTO` -> `FolderDto`).
+heck = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+
+[dev-dependencies]
+# Stand-in for `flutter_rust_bridge::frb`, so the generated mirror fixture
+# compiles in tests without the real bridge.
+flutter_rust_bridge = { package = "frb-attr-shim", path = "../test-support/frb-shim" }
+prost = { workspace = true }
+prost-types = { workspace = true }
+
+[lints]
+workspace = true

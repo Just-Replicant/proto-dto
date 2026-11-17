@@ -168,23 +168,56 @@ Call sites change from `DtoData::from_typed::<FolderDto>(id, dto)` /
 `Ok(DtoData::from_folder(Some(model.id), dto))` and the local
 `*_DTO_TYPE_URL` constants go away; field mapping stays handwritten.
 
-**FRB mirrors.** Instead of handwriting `rust/src/api/file_explorer/dto.rs`
-(every `FolderDto` field again), let `rf-proto`'s `build.rs` render the
-mirrors from the descriptor set it already compiles:
+**FRB mirrors.** Do not handwrite `rust/src/api/file_explorer/dto.rs`
+(every `FolderDto` field again): let `rf-proto`'s `build.rs` render the
+mirrors from the descriptor set it already compiles, with the build-only
+[`proto-dto-build`](#proto-dto-build-build-scripts-only) crate below.
 
-1. `tonic_prost_build::configure().file_descriptor_set_path(out_dir.join("rf_grpc.bin"))`.
-2. Decode it with `prost_types::FileDescriptorSet` (add `prost` and
-   `prost-types` to `[build-dependencies]`).
-3. For each mirrored message, emit
-   `pub use rf_proto::FolderDto; #[frb(mirror(FolderDto), dart_metadata = ("freezed"))] pub struct _FolderDto { … }`
-   with prost's field types (`optional`/message → `Option<T>`, `repeated` →
-   `Vec<T>`, enum → `i32`, keywords as `r#type`). Write
-   `rust/src/api/file_explorer/dto.rs` and `rust/src/api/shared/dto.rs`
-   (`Any`, `DtoData`) only when the content changes, and mark them
-   `@generated`.
-4. Also emit exhaustive `let FolderDto { a, b, … } = x;` conversions into
-   `OUT_DIR` and `include!` them in a `#[cfg(test)]` module, so a proto change
-   without regenerated mirrors fails to compile.
+## `proto-dto-build` (build scripts only)
+
+[`proto-dto-build/`](proto-dto-build/README.md) is a second crate in this
+workspace. It reads a `FileDescriptorSet` and writes the
+`#[frb(mirror(T))] pub struct _T { .. }` files plus an exhaustive
+`let T { a, b } = value` conversion check. The descriptor walk (prost field
+kinds → `Option`/`Vec`/`HashMap`/`Box`/scalars), prost's `heck` naming and
+keyword escaping, and write-if-unchanged live there; the app-specific parts
+are arguments. It is its own crate so library users of `proto-dto` never
+compile `heck` or the file writer.
+
+```toml
+# rust/rf-proto/Cargo.toml
+[build-dependencies]
+proto-dto-build = { path = "../../proto-dto/proto-dto-build" }
+```
+
+```rust,ignore
+// rust/rf-proto/build.rs, after tonic_prost_build wrote `descriptor_path`
+use proto_dto_build::{Message, Mirror};
+
+Mirror::new(&descriptor_path)
+    .package("rf_grpc")
+    .import("rf_proto")
+    .file(
+        "../src/api/shared/dto.rs",
+        [Message::new(".google.protobuf.Any"), Message::new("DTOData")],
+    )
+    .file("../src/api/file_explorer/dto.rs", [Message::new("FolderDTO").freezed()])
+    .check_file(out_dir.join("frb_mirror_check.rs"))
+    .generate()?;
+```
+
+```rust,ignore
+// rust/rf-proto/src/lib.rs
+#[cfg(test)]
+mod mirror_check {
+    include!(concat!(env!("OUT_DIR"), "/frb_mirror_check.rs"));
+}
+```
+
+This replaces `rust/rf-proto/build/mirror.rs`: delete it, the `#[path]`
+module and the `prost`/`prost-types` build-dependencies it needed. The full
+`build.rs`, the type table and the limitations are in
+[`proto-dto-build/README.md`](proto-dto-build/README.md).
 
 ## Licensing
 
@@ -194,15 +227,24 @@ crate expanding these macros (e.g. `rf-proto`, or the Flutter crate expanding
 
 ## Development
 
+The repository is a Cargo workspace: the root package `proto-dto`,
+`proto-dto-build/`, and the test-only `test-support/frb-shim` (not
+published).
+
 ```sh
 cargo fmt --all --check
-cargo clippy --all-targets -- -D warnings
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test                    # protobuf path only
-cargo test --features serde   # + JSON path
-cargo +1.85 test --all-features
-RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc --no-deps --all-features
+cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace                          # protobuf path only
+cargo test --workspace --features proto-dto/serde  # + JSON path
+cargo +1.85 test --workspace --all-features
+RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc --workspace --no-deps --all-features
 ```
+
+`proto-dto-build/tests/fixtures` hold the exact generated files and are
+compiled by `tests/compile.rs`. After an intended output change, regenerate
+them with `PROTO_DTO_BUILD_BLESS=1 cargo test -p proto-dto-build --test generate`
+and review the diff.
 
 `tests/envelope.rs` mirrors the reference `rf_grpc` schema with hand-written
 prost messages. `tests/frb_crud_service.rs` drives the service macro against
@@ -214,16 +256,18 @@ stand-in `RF`/`rf_entity`/`rf_cgp` modules and a no-op `frb` attribute from
 Releases are automated with [release-plz](https://release-plz.dev)
 (`.github/workflows/release-plz.yml`, `release-plz.toml`): every push to
 `main` opens or updates a release PR (version bump + `CHANGELOG.md`); merging
-it publishes to crates.io, tags `vX.Y.Z` and creates the GitHub release.
+it publishes to crates.io, tags `vX.Y.Z` (`proto-dto`) or
+`proto-dto-build-vX.Y.Z` and creates the GitHub release. Each crate has its
+own version and changelog.
 
 Publishing uses **crates.io trusted publishing** (OIDC); there is no
 `CARGO_REGISTRY_TOKEN` secret. One-time setup:
 
 1. **First publish is manual.** Trusted publishing only works for a crate that
    already exists on crates.io. From a clean checkout of `main`:
-   `cargo login` (token with `publish-new`), then `cargo publish`. Revoke the
-   token afterwards.
-2. On crates.io → *proto-dto* → *Settings* → *Trusted Publishing* → *Add*:
+   `cargo login` (token with `publish-new`), then `cargo publish -p proto-dto`
+   and `cargo publish -p proto-dto-build`. Revoke the token afterwards.
+2. For each crate, on crates.io → *proto-dto* / *proto-dto-build* → *Settings* → *Trusted Publishing* → *Add*:
    GitHub, owner `Just-Replicant`, repository `proto-dto`, workflow filename
    `release-plz.yml`, environment empty.
 3. Optionally enable *Require trusted publishing for all new versions* in the

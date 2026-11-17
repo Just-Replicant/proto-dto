@@ -2,9 +2,7 @@
 [workspace]
 # Keep CHANGELOG.md up to date in the release PR (git-cliff, Keep a Changelog).
 changelog_update = true
-# Tag as `v0.1.0` (the default for a single-package repo is `v{{ version }}`).
 git_tag_enable = true
-git_tag_name = "v{{ version }}"
 git_release_enable = true
 publish = true
 # Fail the release PR job if the crate no longer packages cleanly.
@@ -16,3 +14,15 @@ release_always = false
 [[package]]
 name = "proto-dto"
 changelog_path = "CHANGELOG.md"
+# Keep the `v0.1.0` tags proto-dto had as a single-package repository.
+git_tag_name = "v{{ version }}"
+
+[[package]]
+name = "proto-dto-build"
+changelog_path = "proto-dto-build/CHANGELOG.md"
+git_tag_name = "proto-dto-build-v{{ version }}"
+
+# Test-only proc macro, never released.
+[[package]]
+name = "frb-attr-shim"
+release = false

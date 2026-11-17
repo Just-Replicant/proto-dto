@@ -9,3 +9,6 @@ description = "Test-only no-op stand-in for flutter_rust_bridge::frb"
 [lib]
 proc-macro = true
 path = "src/lib.rs"
+
+[lints]
+workspace = true
